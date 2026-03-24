@@ -47,3 +47,12 @@ CLAUDE.md
 
 # SQL Session files
 *.sql
+
+# Editor directories and files
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
