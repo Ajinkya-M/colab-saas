@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function SignupPage() {
           
           {/* Header/Logo Area */}
           <div className="z-10">
-            <h1 className="font-headline text-3xl font-extrabold tracking-tight">The Editorial Authority</h1>
+            <BrandLogo className="h-10 w-auto brightness-0 invert" alt="Spark" />
           </div>
           
           {/* Testimonial Content */}
@@ -233,7 +234,7 @@ export default function SignupPage() {
         {/* Header Section */}
         <header className="w-full pt-12 pb-8 px-6 flex flex-col items-center text-center">
           <div className="mb-8">
-            <span className="font-headline font-bold text-lg tracking-tighter text-on-surface uppercase">THE EDITORIAL AUTHORITY</span>
+            <BrandLogo className="h-8 w-auto" alt="Spark" />
           </div>
           <h1 className="font-headline text-[2.5rem] font-bold leading-tight tracking-tight text-on-surface mb-6">
             Create your account

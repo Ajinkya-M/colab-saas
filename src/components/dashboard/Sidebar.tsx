@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import BrandLogo from '@/components/BrandLogo';
 
 interface SidebarProps {
   activePage?: string;
@@ -30,14 +31,9 @@ export default function Sidebar({ activePage = 'Home' }: SidebarProps) {
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 z-50 bg-surface-container-low border-r border-outline-variant/20 flex flex-col p-4 gap-y-2 font-body text-sm font-medium">
       {/* Logo */}
-      <div className="flex items-center gap-3 mb-8 px-2">
-        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary">
-          <span className="material-symbols-outlined">edit_square</span>
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-on-surface leading-tight">The Editorial Authority</h1>
-          <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">Creator Studio</p>
-        </div>
+      <div className="mb-8 px-2">
+        <BrandLogo className="h-8 w-auto" alt="Spark" />
+        <p className="mt-2 text-[10px] uppercase tracking-widest text-secondary font-bold">Creator Studio</p>
       </div>
 
       {/* Navigation */}

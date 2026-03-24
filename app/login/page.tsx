@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +58,7 @@ export default function LoginPage() {
           </div>
           <div className="relative z-10 max-w-lg">
             {/* Brand Anchor Title */}
-            <div className="mb-12">
-              <h1 className="font-headline text-3xl font-extrabold tracking-tight text-white">The Editorial Authority</h1>
-            </div>
+              <BrandLogo className="h-20 w-auto brightness-0 invert" alt="Spark" />
             {/* Glowing Testimonial Quote */}
             <div className="glass-card p-8 rounded-xl ambient-shadow border border-white/20 transform translate-x-12">
               <span className="material-symbols-outlined text-primary text-4xl mb-4" style={{ fontVariationSettings: "'FILL' 1" }}>format_quote</span>
@@ -150,7 +149,7 @@ export default function LoginPage() {
             style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
           </div>
           <div className="relative z-10 mb-8">
-            <h1 className="font-headline font-extrabold text-2xl tracking-tighter text-on-primary uppercase mb-2">THE EDITORIAL AUTHORITY</h1>
+            <BrandLogo className="mx-auto h-16 w-auto brightness-0 invert mb-2" alt="Spark" />
             <div className="h-1 w-12 bg-tertiary-fixed mx-auto rounded-full"></div>
           </div>
           <div className="relative z-10 glass-card p-6 rounded-xl ambient-shadow max-w-xs mx-auto transform -rotate-1">

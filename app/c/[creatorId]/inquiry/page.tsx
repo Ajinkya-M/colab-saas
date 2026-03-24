@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
+import BrandLogo from '@/components/BrandLogo';
 
 type OAuthProvider = 'google' | 'facebook';
 
@@ -228,7 +229,7 @@ export default function CreatorInquiryPage() {
     <div className="min-h-screen bg-surface text-on-surface">
       <header className="sticky top-0 z-40 border-b border-outline-variant/20 bg-surface/95 px-4 py-4 backdrop-blur md:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <p className="font-headline text-xl font-black tracking-tight">CREATOR</p>
+          <BrandLogo className="h-7 w-auto" alt="Spark" />
           <Link className="text-xs font-semibold uppercase tracking-wider text-secondary" href="/login">
             Log in
           </Link>
