@@ -6,13 +6,36 @@ interface KanbanColumnProps {
   status: DealStatus;
   deals: Deal[];
   dotColor: string;
+  draggingDealId: string | null;
+  onDragStartDeal: (dealId: string) => void;
+  onDragEndDeal: () => void;
+  onDropDeal: (targetStatus: DealStatus) => void;
 }
 
-export default function KanbanColumn({ title, status, deals, dotColor }: KanbanColumnProps) {
+export default function KanbanColumn({
+  title,
+  status,
+  deals,
+  dotColor,
+  draggingDealId,
+  onDragStartDeal,
+  onDragEndDeal,
+  onDropDeal,
+}: KanbanColumnProps) {
   const filteredDeals = deals.filter((d) => d.status === status);
+  const isDropTarget = draggingDealId !== null;
 
   return (
-    <div className="min-w-[300px] w-1/4 flex flex-col gap-4">
+    <div
+      className={`min-w-[300px] w-1/4 flex flex-col gap-4 rounded-xl transition-colors ${
+        isDropTarget ? 'bg-primary/5' : ''
+      }`}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDropDeal(status);
+      }}
+    >
       {/* Column Header */}
       <div className="flex items-center justify-between px-2 py-1">
         <div className="flex items-center gap-2">
@@ -27,7 +50,13 @@ export default function KanbanColumn({ title, status, deals, dotColor }: KanbanC
 
       {/* Deal Cards */}
       {filteredDeals.map((deal) => (
-        <DealCard key={deal.id} deal={deal} isInProduction={status === 'in_production'} />
+        <DealCard
+          key={deal.id}
+          deal={deal}
+          isInProduction={status === 'in_production'}
+          onDragStart={onDragStartDeal}
+          onDragEnd={onDragEndDeal}
+        />
       ))}
 
       {/* Add Task Button (only for in_production column) */}

@@ -3,6 +3,8 @@ import { Deal } from '@/data/mockDeals';
 interface DealCardProps {
   deal: Deal;
   isInProduction?: boolean;
+  onDragStart?: (dealId: string) => void;
+  onDragEnd?: () => void;
 }
 
 const priorityColors: Record<string, string> = {
@@ -11,9 +13,16 @@ const priorityColors: Record<string, string> = {
   low: 'bg-green-400',
 };
 
-export default function DealCard({ deal, isInProduction = false }: DealCardProps) {
+export default function DealCard({ deal, isInProduction = false, onDragStart, onDragEnd }: DealCardProps) {
   return (
     <div
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.setData('text/plain', deal.id);
+        event.dataTransfer.effectAllowed = 'move';
+        onDragStart?.(deal.id);
+      }}
+      onDragEnd={() => onDragEnd?.()}
       className={`bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/20 shadow-sm hover:shadow-md transition-shadow group cursor-grab ${
         isInProduction ? 'border-l-4 border-l-primary' : ''
       }`}
