@@ -1,3 +1,8 @@
+<!-- BEGIN:project-plan -->
+# Project Plan
+The MVP PRD and step-by-step implementation plan for this project can be found in [PROJECT_PLAN.md](PROJECT_PLAN.md).
+<!-- END:project-plan -->
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 

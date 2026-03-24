@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/dashboard/Sidebar';
 import KanbanColumn from '@/components/dashboard/KanbanColumn';
+import CampaignDetailModal from '@/components/dashboard/CampaignDetailModal';
+import InquiryDetailModal from '@/components/dashboard/InquiryDetailModal';
 import { Deal, DealStatus } from '@/data/mockDeals';
 import { supabase } from '@/lib/supabase';
 
@@ -24,11 +26,23 @@ type DbDealRow = {
   budget: number | string | null;
   priority: 'high' | 'medium' | 'low' | string;
   deal_stages: { key: string } | { key: string }[] | null;
+  brand_profile: { name: string | null; avatar_url: string | null } | { name: string | null; avatar_url: string | null }[] | null;
 };
 
 type StageRow = {
   id: string;
   key: string;
+};
+
+type InquiryRow = {
+  id: string;
+  message: string;
+  campaign_title: string | null;
+  budget: number | string | null;
+  status: string | null;
+  created_at: string;
+  brand_user_id: string | null;
+  brand_profile: { name: string | null; avatar_url: string | null } | { name: string | null; avatar_url: string | null }[] | null;
 };
 
 export default function DashboardPage() {
@@ -37,11 +51,18 @@ export default function DashboardPage() {
   const [dealsLoading, setDealsLoading] = useState(true);
   const [dealsError, setDealsError] = useState<string | null>(null);
   const [draggingDealId, setDraggingDealId] = useState<string | null>(null);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [stageIdByStatus, setStageIdByStatus] = useState<Partial<Record<DealStatus, string>>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('Loading...');
   const [userEmail, setUserEmail] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [inquiries, setInquiries] = useState<InquiryRow[]>([]);
+  const [inquiriesError, setInquiriesError] = useState<string | null>(null);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [inquiryActionLoadingId, setInquiryActionLoadingId] = useState<string | null>(null);
+  const [isInquiriesCollapsed, setIsInquiriesCollapsed] = useState(false);
+  const [selectedInquiryId, setSelectedInquiryId] = useState<string | null>(null);
 
   useEffect(() => {
     function getDisplayName(email: string | undefined, metadata: Record<string, unknown> | undefined) {
@@ -129,6 +150,10 @@ export default function DashboardPage() {
           priority,
           deal_stages (
             key
+          ),
+          brand_profile:profiles!deals_brand_user_id_fkey (
+            name,
+            avatar_url
           )
         `)
         .eq('creator_user_id', userId)
@@ -154,23 +179,67 @@ export default function DashboardPage() {
               : typeof deal.budget === 'string'
                 ? Number(deal.budget)
                 : 0;
+          const brandProfile = Array.isArray(deal.brand_profile)
+            ? deal.brand_profile[0] ?? null
+            : deal.brand_profile;
+          const resolvedBrandName =
+            brandProfile?.name && brandProfile.name.trim().length > 0
+              ? brandProfile.name
+              : 'Brand Partner';
+          const resolvedBrandAvatar =
+            brandProfile?.avatar_url && brandProfile.avatar_url.trim().length > 0
+              ? brandProfile.avatar_url
+              : FALLBACK_AVATAR;
 
           return {
             id: deal.id,
-            brandName: 'Brand Partner',
+            brandName: resolvedBrandName,
             projectName: deal.title,
             description: deal.description ?? 'No description yet.',
             budget: Number.isFinite(normalizedBudget) ? normalizedBudget : 0,
             status,
             priority: deal.priority === 'high' || deal.priority === 'medium' || deal.priority === 'low' ? deal.priority : 'medium',
             icon: 'work',
-            contactAvatar: FALLBACK_AVATAR,
+            contactAvatar: resolvedBrandAvatar,
           };
         })
         .filter((deal): deal is Deal => deal !== null);
 
       setDeals(mappedDeals);
       setDealsLoading(false);
+    }
+
+    async function loadInquiriesForUser(userId: string) {
+      setInquiriesError(null);
+      const { data, error } = await supabase
+        .from('inquiries')
+        .select(`
+          id,
+          message,
+          campaign_title,
+          budget,
+          status,
+          created_at,
+          brand_user_id,
+          brand_profile:profiles!inquiries_brand_user_id_fkey (
+            name,
+            avatar_url
+          )
+        `)
+        .eq('creator_user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        setInquiriesError(error.message);
+        return;
+      }
+
+      const visibleInquiries = ((data ?? []) as InquiryRow[]).filter((inquiry) => {
+        const status = (inquiry.status ?? '').toLowerCase();
+        return status !== 'accepted' && status !== 'archived';
+      });
+      setInquiries(visibleInquiries);
     }
 
     async function loadStageMapping() {
@@ -214,6 +283,7 @@ export default function DashboardPage() {
       await ensureProfile(data.user.id, email, user_metadata);
       await loadStageMapping();
       await loadDealsForUser(data.user.id);
+      await loadInquiriesForUser(data.user.id);
     }
 
     void loadUser();
@@ -234,6 +304,7 @@ export default function DashboardPage() {
       void ensureProfile(session.user.id, email, user_metadata);
       void loadStageMapping();
       void loadDealsForUser(session.user.id);
+      void loadInquiriesForUser(session.user.id);
     });
 
     return () => {
@@ -286,6 +357,219 @@ export default function DashboardPage() {
     }
   }
 
+  const inquiryLink =
+    currentUserId && typeof window !== 'undefined'
+      ? `${window.location.origin}/c/${currentUserId}/inquiry`
+      : '';
+
+  async function handleCopyInquiryLink() {
+    if (!inquiryLink) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(inquiryLink);
+      setCopyState('copied');
+      setTimeout(() => setCopyState('idle'), 1800);
+    } catch {
+      setCopyState('failed');
+      setTimeout(() => setCopyState('idle'), 1800);
+    }
+  }
+
+  async function handleAcceptInquiry(inquiry: InquiryRow) {
+    if (!currentUserId) {
+      return;
+    }
+
+    const inquiryStageId = stageIdByStatus.inquiry;
+    if (!inquiryStageId) {
+      setInquiriesError('Missing inquiry stage mapping. Please refresh and try again.');
+      return;
+    }
+
+    setInquiriesError(null);
+    setInquiryActionLoadingId(inquiry.id);
+
+    const normalizedBudget =
+      inquiry.budget !== null && inquiry.budget !== '' && Number.isFinite(Number(inquiry.budget))
+        ? Number(inquiry.budget)
+        : 0;
+
+    const insertPayload: {
+      creator_user_id: string;
+      stage_id: string;
+      title: string;
+      description: string;
+      budget: number;
+      priority: 'high' | 'medium' | 'low';
+      inquiry_id?: string;
+      brand_user_id?: string;
+    } = {
+      creator_user_id: currentUserId,
+      stage_id: inquiryStageId,
+      title: inquiry.campaign_title?.trim() || 'New Brand Inquiry',
+      description: inquiry.message,
+      budget: normalizedBudget,
+      priority: 'medium',
+    };
+
+    if (inquiry.brand_user_id) {
+      insertPayload.brand_user_id = inquiry.brand_user_id;
+    }
+    insertPayload.inquiry_id = inquiry.id;
+
+    const { data: insertedDeal, error: dealInsertError } = await supabase
+      .from('deals')
+      .insert(insertPayload)
+      .select('id, title, description, budget, priority')
+      .single();
+
+    if (dealInsertError) {
+      setInquiriesError(`Failed to accept inquiry: ${dealInsertError.message}`);
+      setInquiryActionLoadingId(null);
+      return;
+    }
+
+    const { error: inquiryUpdateError } = await supabase
+      .from('inquiries')
+      .update({ status: 'accepted' })
+      .eq('id', inquiry.id)
+      .eq('creator_user_id', currentUserId);
+
+    if (inquiryUpdateError) {
+      setInquiriesError(`Deal created but inquiry status update failed: ${inquiryUpdateError.message}`);
+    }
+
+    setInquiries((current) => current.filter((row) => row.id !== inquiry.id));
+    if (selectedInquiryId === inquiry.id) {
+      setSelectedInquiryId(null);
+    }
+
+    if (insertedDeal) {
+      const budget =
+        typeof insertedDeal.budget === 'number'
+          ? insertedDeal.budget
+          : typeof insertedDeal.budget === 'string'
+            ? Number(insertedDeal.budget)
+            : 0;
+
+      const mappedDeal: Deal = {
+        id: insertedDeal.id,
+        brandName: getInquiryBrandName(inquiry),
+        projectName: insertedDeal.title,
+        description: insertedDeal.description ?? 'No description yet.',
+        budget: Number.isFinite(budget) ? budget : 0,
+        status: 'inquiry',
+        priority:
+          insertedDeal.priority === 'high' ||
+          insertedDeal.priority === 'medium' ||
+          insertedDeal.priority === 'low'
+            ? insertedDeal.priority
+            : 'medium',
+        icon: 'work',
+        contactAvatar: getInquiryBrandAvatar(inquiry) ?? FALLBACK_AVATAR,
+      };
+
+      setDeals((current) => [mappedDeal, ...current]);
+    }
+
+    setInquiryActionLoadingId(null);
+  }
+
+  async function handleDeclineInquiry(inquiryId: string) {
+    if (!currentUserId) {
+      return;
+    }
+
+    setInquiriesError(null);
+    setInquiryActionLoadingId(inquiryId);
+
+    const { error } = await supabase
+      .from('inquiries')
+      .update({ status: 'rejected' })
+      .eq('id', inquiryId)
+      .eq('creator_user_id', currentUserId);
+
+    if (error) {
+      setInquiriesError(`Failed to decline inquiry: ${error.message}`);
+      setInquiryActionLoadingId(null);
+      return;
+    }
+
+    setInquiries((current) =>
+      current.map((inquiry) =>
+        inquiry.id === inquiryId ? { ...inquiry, status: 'rejected' } : inquiry
+      )
+    );
+    setInquiryActionLoadingId(null);
+  }
+
+  async function handleRemoveRejectedInquiry(inquiryId: string) {
+    if (!currentUserId) {
+      return;
+    }
+
+    setInquiriesError(null);
+    setInquiryActionLoadingId(inquiryId);
+
+    const { data: deletedInquiryRows, error: deleteInquiryError } = await supabase
+      .from('inquiries')
+      .delete()
+      .eq('id', inquiryId)
+      .eq('creator_user_id', currentUserId)
+      .select('id');
+
+    if (deleteInquiryError) {
+      setInquiriesError(`Failed to remove inquiry: ${deleteInquiryError.message}`);
+      setInquiryActionLoadingId(null);
+      return;
+    }
+
+    if (!deletedInquiryRows || deletedInquiryRows.length === 0) {
+      setInquiriesError('Failed to remove inquiry: no rows were deleted. Check RLS delete policy.');
+      setInquiryActionLoadingId(null);
+      return;
+    }
+
+    setInquiries((current) => current.filter((inquiry) => inquiry.id !== inquiryId));
+    if (selectedInquiryId === inquiryId) {
+      setSelectedInquiryId(null);
+    }
+    setInquiryActionLoadingId(null);
+  }
+
+  const selectedInquiry =
+    selectedInquiryId !== null
+      ? inquiries.find((inquiry) => inquiry.id === selectedInquiryId) ?? null
+      : null;
+
+  function getInquiryBrandProfile(inquiry: InquiryRow) {
+    if (!inquiry.brand_profile) {
+      return { name: null, avatar_url: null };
+    }
+    if (Array.isArray(inquiry.brand_profile)) {
+      return inquiry.brand_profile[0] ?? { name: null, avatar_url: null };
+    }
+    return inquiry.brand_profile;
+  }
+
+  function getInquiryBrandName(inquiry: InquiryRow) {
+    const profile = getInquiryBrandProfile(inquiry);
+    if (profile.name && profile.name.trim().length > 0) {
+      return profile.name;
+    }
+    return 'Brand User';
+  }
+
+  function getInquiryBrandAvatar(inquiry: InquiryRow) {
+    const profile = getInquiryBrandProfile(inquiry);
+    if (profile.avatar_url && profile.avatar_url.trim().length > 0) {
+      return profile.avatar_url;
+    }
+    return null;
+  }
+
   return (
     <div className="bg-surface font-body text-on-surface antialiased min-h-screen">
       {/* Sidebar */}
@@ -317,6 +601,7 @@ export default function DashboardPage() {
               <img
                 alt={`${userName} avatar`}
                 className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/10"
+                referrerPolicy="no-referrer"
                 src={avatarUrl}
               />
             ) : (
@@ -335,6 +620,139 @@ export default function DashboardPage() {
           <h2 className="font-headline text-5xl font-bold tracking-tight text-on-surface mb-2">Editorial Pipeline</h2>
           <p className="font-body text-secondary text-lg">Manage your creative workflow and brand partnerships.</p>
         </div>
+
+        <section className="mb-8 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-secondary font-label">Public Inquiry Link</p>
+              <p className="text-sm text-on-surface-variant">
+                Share this URL with brands so they can submit inquiries directly to you.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="max-w-[440px] truncate rounded-full bg-surface px-4 py-2 text-xs">
+                {inquiryLink || 'Loading creator link...'}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyInquiryLink}
+                disabled={!inquiryLink}
+                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-on-primary disabled:opacity-50"
+              >
+                {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy Failed' : 'Copy Link'}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-8 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setIsInquiriesCollapsed((current) => !current)}
+              className="flex items-center gap-2"
+            >
+              <h3 className="font-headline text-xl font-bold text-on-surface">Latest Inquiries</h3>
+              <span className="material-symbols-outlined text-secondary">
+                {isInquiriesCollapsed ? 'expand_more' : 'expand_less'}
+              </span>
+            </button>
+            <p className="text-xs text-secondary">{inquiries.length} recent</p>
+          </div>
+          {!isInquiriesCollapsed && (
+            <>
+              {inquiriesError && <p className="text-sm text-error">Failed to load inquiries: {inquiriesError}</p>}
+              {!inquiriesError && inquiries.length === 0 && (
+                <p className="text-sm text-secondary">No inquiries yet. Share your link to start receiving requests.</p>
+              )}
+              <div className="space-y-3">
+                {inquiries.map((inquiry) => (
+                  <article
+                    key={inquiry.id}
+                    onClick={() => setSelectedInquiryId(inquiry.id)}
+                    className="cursor-pointer rounded-xl border border-outline-variant/25 bg-surface p-4 transition-colors hover:bg-surface-container-low"
+                  >
+                    <div className="mb-3 flex items-center gap-3">
+                      {getInquiryBrandAvatar(inquiry) ? (
+                        <img
+                          src={getInquiryBrandAvatar(inquiry)!}
+                          alt={`${getInquiryBrandName(inquiry)} avatar`}
+                          referrerPolicy="no-referrer"
+                          className="h-9 w-9 rounded-full object-cover ring-1 ring-outline-variant/25"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                          {getInquiryBrandName(inquiry).slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-on-surface">{getInquiryBrandName(inquiry)}</p>
+                        <p className="text-[11px] text-secondary">Brand</p>
+                      </div>
+                    </div>
+                    <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary">
+                      <span className="rounded-full bg-surface-container-low px-2 py-0.5 uppercase tracking-wider">
+                        {inquiry.status ?? 'new'}
+                      </span>
+                      <span>{new Date(inquiry.created_at).toLocaleString()}</span>
+                    </div>
+                    <p className="font-semibold text-on-surface">
+                      {inquiry.campaign_title?.trim() || 'Untitled Campaign'}
+                    </p>
+                    {inquiry.budget !== null && inquiry.budget !== '' && Number.isFinite(Number(inquiry.budget)) && (
+                      <p className="text-sm text-secondary">Budget: ${Number(inquiry.budget).toLocaleString()}</p>
+                    )}
+                    <p className="mt-2 text-sm text-on-surface-variant">{inquiry.message}</p>
+                    <div className="mt-3 flex items-center gap-2">
+                      {inquiry.status === 'new' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleAcceptInquiry(inquiry);
+                            }}
+                            disabled={inquiryActionLoadingId === inquiry.id}
+                            className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary disabled:opacity-50"
+                          >
+                            {inquiryActionLoadingId === inquiry.id ? 'Processing...' : 'Accept'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleDeclineInquiry(inquiry.id);
+                            }}
+                            disabled={inquiryActionLoadingId === inquiry.id}
+                            className="rounded-full border border-outline-variant/40 px-3 py-1.5 text-xs font-semibold text-on-surface disabled:opacity-50"
+                          >
+                            Decline
+                          </button>
+                        </>
+                      ) : inquiry.status === 'rejected' ? (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleRemoveRejectedInquiry(inquiry.id);
+                          }}
+                          disabled={inquiryActionLoadingId === inquiry.id}
+                          className="rounded-full border border-error/30 bg-error-container px-3 py-1.5 text-xs font-semibold text-on-error-container disabled:opacity-50"
+                        >
+                          {inquiryActionLoadingId === inquiry.id ? 'Removing...' : 'Remove From List'}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-secondary">
+                          {inquiry.status === 'accepted' ? 'Accepted' : inquiry.status === 'rejected' ? 'Declined' : 'Updated'}
+                        </span>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
 
         {/* Kanban Board */}
         {dealsError && (
@@ -358,6 +776,7 @@ export default function DashboardPage() {
                 onDragStartDeal={setDraggingDealId}
                 onDragEndDeal={() => setDraggingDealId(null)}
                 onDropDeal={handleDropDeal}
+                onSelectDeal={setSelectedDealId}
               />
             ))}
           </div>
@@ -379,6 +798,24 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-r from-primary to-primary-container h-full w-[85%]"></div>
         </div>
       </div>
+
+      {/* Slide-over Modal for Deal Details */}
+      {selectedDealId && (
+        <CampaignDetailModal
+          deal={deals.find((d) => d.id === selectedDealId)!}
+          onClose={() => setSelectedDealId(null)}
+        />
+      )}
+      {selectedInquiry && (
+        <InquiryDetailModal
+          inquiry={selectedInquiry}
+          isActionLoading={inquiryActionLoadingId === selectedInquiry.id}
+          onClose={() => setSelectedInquiryId(null)}
+          onAccept={() => void handleAcceptInquiry(selectedInquiry)}
+          onDecline={() => void handleDeclineInquiry(selectedInquiry.id)}
+          onRemoveRejected={() => void handleRemoveRejectedInquiry(selectedInquiry.id)}
+        />
+      )}
     </div>
   );
 }

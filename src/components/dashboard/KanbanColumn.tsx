@@ -10,6 +10,7 @@ interface KanbanColumnProps {
   onDragStartDeal: (dealId: string) => void;
   onDragEndDeal: () => void;
   onDropDeal: (targetStatus: DealStatus) => void;
+  onSelectDeal?: (dealId: string) => void;
 }
 
 export default function KanbanColumn({
@@ -21,6 +22,7 @@ export default function KanbanColumn({
   onDragStartDeal,
   onDragEndDeal,
   onDropDeal,
+  onSelectDeal,
 }: KanbanColumnProps) {
   const filteredDeals = deals.filter((d) => d.status === status);
   const isDropTarget = draggingDealId !== null;
@@ -56,6 +58,7 @@ export default function KanbanColumn({
           isInProduction={status === 'in_production'}
           onDragStart={onDragStartDeal}
           onDragEnd={onDragEndDeal}
+          onSelectDeal={onSelectDeal}
         />
       ))}
 
