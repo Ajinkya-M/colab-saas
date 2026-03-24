@@ -1,6 +1,43 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 export default function SignupPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
+    });
+
+    if (signUpError) {
+      setError(signUpError.message);
+      setLoading(false);
+    } else {
+      // In a real app, we might wait for email confirmation, 
+      // but for this "orchestration", we'll redirect to dashboard.
+      router.push('/dashboard');
+    }
+  }
+
   return (
     <div className="bg-surface text-on-surface font-body min-h-screen flex flex-col">
       {/* --- DESKTOP VIEW (lg and above) --- */}
@@ -81,24 +118,60 @@ export default function SignupPage() {
               </div>
             </div>
             
-            <form className="space-y-5">
+            <form onSubmit={handleSignup} className="space-y-5">
+              {error && (
+                <div className="p-4 bg-error-container text-on-error-container text-sm rounded-lg mb-4 border border-error/10">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-on-surface-variant font-label uppercase tracking-wider" htmlFor="desktop-name">Full Name</label>
-                <input className="w-full px-4 py-3 bg-surface-container-lowest ghost-border rounded-md text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" id="desktop-name" name="name" placeholder="Alex Sterling" required type="text" />
+                <input 
+                  className="w-full px-4 py-3 bg-surface-container-lowest ghost-border rounded-md text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" 
+                  id="desktop-name" 
+                  name="name" 
+                  placeholder="Alex Sterling" 
+                  required 
+                  type="text" 
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-on-surface-variant font-label uppercase tracking-wider" htmlFor="desktop-email">Email Address</label>
-                <input className="w-full px-4 py-3 bg-surface-container-lowest ghost-border rounded-md text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" id="desktop-email" name="email" placeholder="alex@studio.co" required type="email" />
+                <input 
+                  className="w-full px-4 py-3 bg-surface-container-lowest ghost-border rounded-md text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" 
+                  id="desktop-email" 
+                  name="email" 
+                  placeholder="alex@studio.co" 
+                  required 
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-on-surface-variant font-label uppercase tracking-wider" htmlFor="desktop-password">Password</label>
-                <input className="w-full px-4 py-3 bg-surface-container-lowest ghost-border rounded-md text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" id="desktop-password" name="password" placeholder="••••••••" required type="password" />
+                <input 
+                  className="w-full px-4 py-3 bg-surface-container-lowest ghost-border rounded-md text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" 
+                  id="desktop-password" 
+                  name="password" 
+                  placeholder="••••••••" 
+                  required 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
               
-              <button className="w-full mt-8 py-4 editorial-gradient text-on-primary rounded-full font-bold text-lg hover:opacity-90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20" type="submit">
-                Sign Up
+              <button 
+                className="w-full mt-8 py-4 editorial-gradient text-on-primary rounded-full font-bold text-lg hover:opacity-90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed" 
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? 'Creating account...' : 'Sign Up'}
               </button>
             </form>
             
@@ -173,28 +246,60 @@ export default function SignupPage() {
             </div>
             
             {/* Registration Form */}
-            <form className="space-y-6">
+            <form onSubmit={handleSignup} className="space-y-6">
+              {error && (
+                <div className="p-4 bg-error-container text-on-error-container text-sm rounded-lg mb-4 border border-error/10">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="font-label text-xs uppercase tracking-widest font-semibold text-on-surface-variant" htmlFor="mobile-name">Full Name</label>
-                <input className="w-full bg-surface-container-lowest ghost-border rounded-md px-4 py-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant" id="mobile-name" placeholder="Enter your name" type="text"/>
+                <input 
+                  className="w-full bg-surface-container-lowest ghost-border rounded-md px-4 py-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant" 
+                  id="mobile-name" 
+                  placeholder="Enter your name" 
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
               </div>
               
               <div className="space-y-2">
                 <label className="font-label text-xs uppercase tracking-widest font-semibold text-on-surface-variant" htmlFor="mobile-email">Email Address</label>
-                <input className="w-full bg-surface-container-lowest ghost-border rounded-md px-4 py-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant" id="mobile-email" placeholder="name@company.com" type="email"/>
+                <input 
+                  className="w-full bg-surface-container-lowest ghost-border rounded-md px-4 py-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant" 
+                  id="mobile-email" 
+                  placeholder="name@company.com" 
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
               
               <div className="space-y-2">
                 <label className="font-label text-xs uppercase tracking-widest font-semibold text-on-surface-variant" htmlFor="mobile-password">Password</label>
                 <div className="relative">
-                  <input className="w-full bg-surface-container-lowest ghost-border rounded-md px-4 py-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant" id="mobile-password" placeholder="Min. 8 characters" type="password"/>
-                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline-variant cursor-pointer border-none bg-transparent">visibility</span>
+                  <input 
+                    className="w-full bg-surface-container-lowest ghost-border rounded-md px-4 py-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant" 
+                    id="mobile-password" 
+                    placeholder="Min. 8 characters" 
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
               
               <div className="pt-4">
-                <button className="w-full editorial-gradient text-on-primary py-5 rounded-full font-headline font-bold text-lg shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-150" type="submit">
-                    Sign Up
+                <button 
+                  className="w-full editorial-gradient text-on-primary py-5 rounded-full font-headline font-bold text-lg shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-150 disabled:opacity-50" 
+                  type="submit"
+                  disabled={loading}
+                >
+                    {loading ? 'Creating account...' : 'Sign Up'}
                 </button>
               </div>
             </form>

@@ -13,3 +13,11 @@ This repository uses a Stitch design project for UI generation.
 
 Whenever accessing or generating designs in Stitch, use this Project ID.
 <!-- END:stitch-design-rules -->
+
+<!-- BEGIN:test-credentials -->
+# Test Credentials
+
+Use these credentials to bypass the Supabase Auth or test the login/signup flow quickly:
+- **Email:** `test@test.com`
+- **Password:** `password123`
+<!-- END:test-credentials -->

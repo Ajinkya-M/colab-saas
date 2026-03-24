@@ -1,6 +1,41 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    // MOCK DATA BYPASS for orchestration as requested
+    if (email === 'test@test.com' && password === 'password123') {
+      router.push('/dashboard');
+      return;
+    }
+
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (loginError) {
+      setError(loginError.message);
+      setLoading(false);
+    } else {
+      router.push('/dashboard');
+    }
+  }
+
   return (
     <main className="bg-surface font-body text-on-surface selection:bg-primary-fixed-dim min-h-screen">
       
@@ -70,11 +105,29 @@ export default function LoginPage() {
             </div>
             
             {/* Email Form */}
-            <form className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6">
+              {error && (
+                <div className="p-4 bg-error-container text-on-error-container text-sm rounded-lg mb-4 border border-error/10">
+                  {error}
+                </div>
+              )}
+              {/* Test Data Hint */}
+              <div className="p-3 bg-primary-fixed-dim/20 border border-primary/10 rounded-lg text-[10px] text-primary/70 font-medium">
+                💡 Test Data: info@studio.co / password123
+              </div>
               <div className="space-y-2">
                 <label className="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant block" htmlFor="desktop-email">Email Address</label>
                 <div className="relative">
-                  <input className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-5 py-4 font-body text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" id="desktop-email" name="email" placeholder="name@atelier.com" type="email" />
+                  <input 
+                    className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-5 py-4 font-body text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" 
+                    id="desktop-email" 
+                    name="email" 
+                    placeholder="name@atelier.com" 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
               
@@ -84,7 +137,16 @@ export default function LoginPage() {
                   <Link className="font-label text-xs font-semibold text-primary hover:underline" href="#">Forgot password?</Link>
                 </div>
                 <div className="relative">
-                  <input className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-5 py-4 font-body text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" id="desktop-password" name="password" placeholder="••••••••" type="password" />
+                  <input 
+                    className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-5 py-4 font-body text-on-surface placeholder:text-outline/50 focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all duration-200" 
+                    id="desktop-password" 
+                    name="password" 
+                    placeholder="••••••••" 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
               
@@ -93,8 +155,12 @@ export default function LoginPage() {
                 <label className="font-body text-sm text-on-surface-variant" htmlFor="desktop-remember">Keep me signed in for 30 days</label>
               </div>
               
-              <button className="w-full editorial-gradient py-5 px-6 rounded-full font-headline font-bold text-white ambient-shadow hover:opacity-95 transition-all duration-200 active:scale-[0.98]" type="submit">
-                Sign In
+              <button 
+                className="w-full editorial-gradient py-5 px-6 rounded-full font-headline font-bold text-white ambient-shadow hover:opacity-95 transition-all duration-200 active:scale-[0.98] disabled:opacity-50" 
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? 'Entering Studio...' : 'Sign In'}
               </button>
             </form>
             
@@ -152,20 +218,47 @@ export default function LoginPage() {
                 <span className="text-[10px] font-label uppercase tracking-widest text-outline">or email login</span>
                 <div className="h-[1px] flex-grow bg-outline-variant/20"></div>
               </div>
-              <form className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-6">
+                {error && (
+                  <div className="p-4 bg-error-container text-on-error-container text-sm rounded-lg mb-4 border border-error/10">
+                    {error}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <label className="block text-[10px] font-label uppercase tracking-widest text-on-surface-variant font-bold ml-1" htmlFor="mobile-email">Email Address</label>
-                  <input className="w-full h-14 px-5 bg-surface-container-low border border-transparent rounded-xl focus:bg-surface-container-lowest focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant outline-none" id="mobile-email" name="email" placeholder="name@studio.com" type="email"/>
+                  <input 
+                    className="w-full h-14 px-5 bg-surface-container-low border border-transparent rounded-xl focus:bg-surface-container-lowest focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant outline-none" 
+                    id="mobile-email" 
+                    name="email" 
+                    placeholder="name@studio.com" 
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant font-bold" htmlFor="mobile-password">Password</label>
                     <Link className="text-[10px] font-label uppercase tracking-widest text-primary font-bold hover:underline" href="#">Forgot?</Link>
                   </div>
-                  <input className="w-full h-14 px-5 bg-surface-container-low border border-transparent rounded-xl focus:bg-surface-container-lowest focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant outline-none" id="mobile-password" name="password" placeholder="••••••••" type="password"/>
+                  <input 
+                    className="w-full h-14 px-5 bg-surface-container-low border border-transparent rounded-xl focus:bg-surface-container-lowest focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-on-surface placeholder:text-outline-variant outline-none" 
+                    id="mobile-password" 
+                    name="password" 
+                    placeholder="••••••••" 
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
                 </div>
-                <button className="w-full h-14 editorial-gradient text-on-primary font-headline font-bold text-sm tracking-wide rounded-full shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center" type="submit">
-                    Sign In to Dashboard
+                <button 
+                  className="w-full h-14 editorial-gradient text-on-primary font-headline font-bold text-sm tracking-wide rounded-full shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center disabled:opacity-50" 
+                  type="submit"
+                  disabled={loading}
+                >
+                    {loading ? 'Entering Studio...' : 'Sign In to Dashboard'}
                 </button>
               </form>
             </div>

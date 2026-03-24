@@ -1,6 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
-
 @import "tailwindcss";
 
 @theme inline {
@@ -59,7 +56,22 @@
 
 @layer utilities {
   .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    vertical-align: middle;
   }
   .editorial-gradient {
     background: linear-gradient(135deg, #0038a4 0%, #2a52be 100%);
@@ -82,5 +94,14 @@
     background-color: var(--color-surface);
     color: var(--color-on-surface);
     font-family: var(--font-body);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c4c5d5;
+    border-radius: 10px;
   }
 }
