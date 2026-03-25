@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, getURL } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import BrandLogo from '@/components/BrandLogo';
 
@@ -147,7 +147,7 @@ export default function CreatorInquiryPage() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: window.location.href,
+        redirectTo: `${getURL()}c/${params.creatorId}/inquiry`,
       },
     });
 

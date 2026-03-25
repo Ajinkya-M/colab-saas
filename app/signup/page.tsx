@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { supabase, getURL } from '@/lib/supabase';
 import BrandLogo from '@/components/BrandLogo';
 
 export default function SignupPage() {
@@ -47,7 +47,7 @@ export default function SignupPage() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${getURL()}dashboard`,
       },
     });
 
