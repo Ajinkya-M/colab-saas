@@ -18,6 +18,10 @@ export const getURL = () => {
   url = url.includes('http') ? url : `https://${url}`;
   // Make sure to include a trailing `/`.
   url = url.charAt(url.length - 1) === '/' ? url : `${url}/`;
+  if (typeof window !== 'undefined') {
+    // Helpful in production to confirm which URL is used for OAuth redirects.
+    console.info('[auth] computed OAuth redirect base URL:', url);
+  }
   return url;
 };
   
