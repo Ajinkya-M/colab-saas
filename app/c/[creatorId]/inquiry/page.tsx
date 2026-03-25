@@ -73,6 +73,7 @@ async function ensureBrandProfile(user: User) {
 export default function CreatorInquiryPage() {
   const params = useParams<{ creatorId: string }>();
   const creatorId = params.creatorId;
+  const inquiryFormId = 'creator-inquiry-form';
 
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
@@ -165,66 +166,64 @@ export default function CreatorInquiryPage() {
 
     setError(null);
     setSubmitLoading(true);
-
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) {
-      setSubmitLoading(false);
-      setError(userError?.message ?? 'Please verify your account before submitting.');
-      return;
-    }
-
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        setError(userError?.message ?? 'Please verify your account before submitting.');
+        return;
+      }
+
       await ensureBrandProfile(userData.user);
-    } catch (profileError) {
-      const message =
-        profileError instanceof Error ? profileError.message : 'Failed to create brand profile.';
-      setError(message);
+
+      const parsedBudget = budget.trim().length > 0 ? Number(budget) : null;
+      const normalizedBudget =
+        parsedBudget !== null && Number.isFinite(parsedBudget) ? parsedBudget : null;
+
+      const insertPayload: {
+        creator_user_id: string;
+        brand_user_id: string;
+        message: string;
+        status: string;
+        campaign_title?: string;
+        budget?: number;
+      } = {
+        creator_user_id: creatorId,
+        brand_user_id: userData.user.id,
+        message:
+          timeline.trim().length > 0
+            ? `${message.trim()}\n\nPreferred timeline: ${timeline.trim()}`
+            : message.trim(),
+        status: 'new',
+      };
+
+      if (campaignTitle.trim().length > 0) {
+        insertPayload.campaign_title = campaignTitle.trim();
+      }
+      if (normalizedBudget !== null) {
+        insertPayload.budget = normalizedBudget;
+      }
+
+      const { error: insertError } = await supabase.from('inquiries').insert(insertPayload);
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+
+      setSuccess(true);
+      setCampaignTitle('');
+      setBudget('');
+      setTimeline('');
+      setMessage('');
+      setIsConfirmed(false);
+    } catch (submissionError) {
+      setError(
+        submissionError instanceof Error
+          ? submissionError.message
+          : 'Failed to submit inquiry. Please try again.'
+      );
+    } finally {
       setSubmitLoading(false);
-      return;
     }
-
-    const parsedBudget = budget.trim().length > 0 ? Number(budget) : null;
-    const normalizedBudget =
-      parsedBudget !== null && Number.isFinite(parsedBudget) ? parsedBudget : null;
-
-    const insertPayload: {
-      creator_user_id: string;
-      brand_user_id: string;
-      message: string;
-      status: string;
-      campaign_title?: string;
-      budget?: number;
-    } = {
-      creator_user_id: creatorId,
-      brand_user_id: userData.user.id,
-      message:
-        timeline.trim().length > 0
-          ? `${message.trim()}\n\nPreferred timeline: ${timeline.trim()}`
-          : message.trim(),
-      status: 'new',
-    };
-
-    if (campaignTitle.trim().length > 0) {
-      insertPayload.campaign_title = campaignTitle.trim();
-    }
-    if (normalizedBudget !== null) {
-      insertPayload.budget = normalizedBudget;
-    }
-    const { error: insertError } = await supabase.from('inquiries').insert(insertPayload);
-
-    if (insertError) {
-      setError(insertError.message);
-      setSubmitLoading(false);
-      return;
-    }
-
-    setSubmitLoading(false);
-    setSuccess(true);
-    setCampaignTitle('');
-    setBudget('');
-    setTimeline('');
-    setMessage('');
-    setIsConfirmed(false);
   }
 
   return (
@@ -296,6 +295,7 @@ export default function CreatorInquiryPage() {
           </section>
         ) : (
           <form
+            id={inquiryFormId}
             onSubmit={handleSubmit}
             className="rounded-xl border border-outline-variant/25 bg-surface-container-lowest p-4 pb-24 md:p-6 md:pb-6"
           >
@@ -363,17 +363,22 @@ export default function CreatorInquiryPage() {
                 </span>
               </label>
             </div>
+          </form>
+        )}
 
-            <div className="fixed inset-x-0 bottom-0 z-50 border-t border-outline-variant/25 bg-surface p-4 md:static md:mt-6 md:border-none md:bg-transparent md:p-0">
+        {!success && (
+          <div className="fixed inset-x-0 bottom-0 z-50 border-t border-outline-variant/25 bg-surface p-4 md:static md:mt-0 md:border-none md:bg-transparent md:p-0">
+            <div className="mx-auto w-full max-w-5xl md:max-w-none">
               <button
                 type="submit"
+                form={inquiryFormId}
                 disabled={!canSubmit}
                 className="h-12 w-full rounded-full bg-primary text-sm font-semibold text-on-primary disabled:opacity-50"
               >
                 {submitLabel}
               </button>
             </div>
-          </form>
+          </div>
         )}
       </main>
     </div>
