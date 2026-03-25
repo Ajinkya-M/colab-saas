@@ -49,6 +49,7 @@ export default function DealCard({ deal, isInProduction = false, onDragStart, on
         <img
           alt={`${deal.brandName} contact`}
           className="w-7 h-7 rounded-full object-cover"
+          referrerPolicy="no-referrer"
           src={deal.contactAvatar}
         />
       </div>

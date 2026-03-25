@@ -29,7 +29,7 @@ export default function Sidebar({ activePage = 'Home' }: SidebarProps) {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 z-50 bg-surface-container-low border-r border-outline-variant/20 flex flex-col p-4 gap-y-2 font-body text-sm font-medium">
+    <aside className="fixed left-0 top-0 h-screen w-64 z-50 bg-surface-container-low border-r border-outline-variant/20 hidden md:flex flex-col p-4 gap-y-2 font-body text-sm font-medium">
       {/* Logo */}
       <div className="mb-8 px-2">
         <BrandLogo className="h-8 w-auto" alt="Spark" />

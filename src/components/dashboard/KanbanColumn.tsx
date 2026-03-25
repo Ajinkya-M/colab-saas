@@ -29,7 +29,7 @@ export default function KanbanColumn({
 
   return (
     <div
-      className={`min-w-[300px] w-1/4 flex flex-col gap-4 rounded-xl transition-colors ${
+      className={`w-full md:min-w-[300px] md:w-1/4 flex flex-col gap-4 rounded-xl transition-colors ${
         isDropTarget ? 'bg-primary/5' : ''
       }`}
       onDragOver={(event) => event.preventDefault()}

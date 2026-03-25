@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const [inquiryActionLoadingId, setInquiryActionLoadingId] = useState<string | null>(null);
   const [isInquiriesCollapsed, setIsInquiriesCollapsed] = useState(false);
   const [selectedInquiryId, setSelectedInquiryId] = useState<string | null>(null);
+  const [activeMobileTab, setActiveMobileTab] = useState<DealStatus>('inquiry');
 
   useEffect(() => {
     function getDisplayName(email: string | undefined, metadata: Record<string, unknown> | undefined) {
@@ -575,8 +576,8 @@ export default function DashboardPage() {
       {/* Sidebar */}
       <Sidebar activePage="Home" />
 
-      {/* Top Navigation */}
-      <header className="fixed top-0 right-0 left-64 z-40 bg-surface flex justify-between items-center px-8 py-4">
+      {/* Desktop Top Navigation */}
+      <header className="fixed top-0 right-0 left-64 z-40 bg-surface hidden md:flex justify-between items-center px-8 py-4">
         <div className="flex items-center w-1/3">
           <div className="relative w-full max-w-md">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
@@ -613,12 +614,45 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      {/* Mobile Top Navigation */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-md border-b border-outline-variant/10 flex md:hidden items-center justify-between px-4 py-3">
+        <button className="p-2 text-on-surface-variant">
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+        <h1 className="font-headline text-xl font-bold tracking-tight text-primary">Spark</h1>
+        <div className="flex items-center gap-3">
+          {avatarUrl ? (
+            <img
+              alt="avatar"
+              className="w-8 h-8 rounded-full object-cover ring-1 ring-primary/10"
+              referrerPolicy="no-referrer"
+              src={avatarUrl}
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold font-headline">
+              {initials || 'U'}
+            </div>
+          )}
+        </div>
+      </header>
+
       {/* Main Content */}
-      <main className="ml-64 pt-24 min-h-screen px-8 pb-8">
+      <main className="ml-0 md:ml-64 pt-20 md:pt-24 min-h-screen px-4 md:px-8 pb-32 md:pb-8">
+        {/* Mobile Milestone Card */}
+        <div className="mb-6 block md:hidden bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/10 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary font-label">Weekly Milestone</span>
+            <span className="text-xs font-bold text-primary font-headline">85% to Target</span>
+          </div>
+          <div className="w-full bg-surface-container-high h-1 rounded-full overflow-hidden">
+            <div className="bg-primary h-full w-[85%]"></div>
+          </div>
+        </div>
+
         {/* Page Title */}
-        <div className="mb-10">
-          <h2 className="font-headline text-5xl font-bold tracking-tight text-on-surface mb-2">Editorial Pipeline</h2>
-          <p className="font-body text-secondary text-lg">Manage your creative workflow and brand partnerships.</p>
+        <div className="mb-6 md:mb-10">
+          <h2 className="font-headline text-3xl md:text-5xl font-bold tracking-tight text-on-surface mb-1 md:mb-2 text-editorial-blue">Editorial Pipeline</h2>
+          <p className="font-body text-secondary text-sm md:text-lg">Manage your creative workflow and brand partnerships.</p>
         </div>
 
         <section className="mb-8 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5">
@@ -754,6 +788,23 @@ export default function DashboardPage() {
           )}
         </section>
 
+        {/* Mobile Pipeline Switcher */}
+        <div className="flex md:hidden items-center gap-1 p-1 bg-surface-container-low rounded-xl mb-6 overflow-x-auto no-scrollbar border border-outline-variant/5">
+          {columns.map((col) => (
+            <button
+              key={col.status}
+              onClick={() => setActiveMobileTab(col.status)}
+              className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+                activeMobileTab === col.status
+                  ? 'bg-surface-container-lowest text-primary shadow-sm'
+                  : 'text-secondary hover:text-on-surface'
+              }`}
+            >
+              {col.title.replace('Inquiries', '').replace('Signed', '').trim()}
+            </button>
+          ))}
+        </div>
+
         {/* Kanban Board */}
         {dealsError && (
           <p className="mb-4 text-sm text-error">Failed to load deals: {dealsError}</p>
@@ -764,24 +815,67 @@ export default function DashboardPage() {
             Loading your pipeline...
           </div>
         ) : (
-          <div className="flex gap-6 overflow-x-auto pb-6 -mx-2 px-2 scroll-smooth">
-            {columns.map((col) => (
-              <KanbanColumn
-                key={col.status}
-                title={col.title}
-                status={col.status}
-                deals={deals}
-                dotColor={col.dotColor}
-                draggingDealId={draggingDealId}
-                onDragStartDeal={setDraggingDealId}
-                onDragEndDeal={() => setDraggingDealId(null)}
-                onDropDeal={handleDropDeal}
-                onSelectDeal={setSelectedDealId}
-              />
-            ))}
-          </div>
+          <>
+            {/* Mobile Tab View */}
+            <div className="block md:hidden">
+              {columns
+                .filter((col) => col.status === activeMobileTab)
+                .map((col) => (
+                  <KanbanColumn
+                    key={col.status}
+                    title={col.title}
+                    status={col.status}
+                    deals={deals}
+                    dotColor={col.dotColor}
+                    draggingDealId={draggingDealId}
+                    onDragStartDeal={setDraggingDealId}
+                    onDragEndDeal={() => setDraggingDealId(null)}
+                    onDropDeal={handleDropDeal}
+                    onSelectDeal={setSelectedDealId}
+                  />
+                ))}
+            </div>
+
+            {/* Desktop Grid View */}
+            <div className="hidden md:flex gap-6 overflow-x-auto pb-6 -mx-2 px-2 scroll-smooth">
+              {columns.map((col) => (
+                <KanbanColumn
+                  key={col.status}
+                  title={col.title}
+                  status={col.status}
+                  deals={deals}
+                  dotColor={col.dotColor}
+                  draggingDealId={draggingDealId}
+                  onDragStartDeal={setDraggingDealId}
+                  onDragEndDeal={() => setDraggingDealId(null)}
+                  onDropDeal={handleDropDeal}
+                  onSelectDeal={setSelectedDealId}
+                />
+              ))}
+            </div>
+          </>
         )}
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-lg border-t border-outline-variant/10 flex md:hidden justify-around py-3 pb-8">
+        <button className="flex flex-col items-center gap-1 text-primary">
+          <span className="material-symbols-outlined">home</span>
+          <span className="text-[10px] font-bold font-label">Home</span>
+        </button>
+        <button className="flex flex-col items-center gap-1 text-on-surface-variant">
+          <span className="material-symbols-outlined">brand_awareness</span>
+          <span className="text-[10px] font-bold font-label">Deals</span>
+        </button>
+        <button className="flex flex-col items-center gap-1 text-on-surface-variant">
+          <span className="material-symbols-outlined">chat</span>
+          <span className="text-[10px] font-bold font-label">Inbox</span>
+        </button>
+        <button className="flex flex-col items-center gap-1 text-on-surface-variant">
+          <span className="material-symbols-outlined">settings</span>
+          <span className="text-[10px] font-bold font-label">Settings</span>
+        </button>
+      </footer>
 
       {/* Floating Weekly Milestone Card */}
       <div className="fixed bottom-8 right-8 w-80 glass-card p-6 rounded-2xl border border-outline-variant/20 shadow-2xl z-40 hidden md:block">
